@@ -38,3 +38,4 @@ def get_categorical_distribution(df):
         dist = df[col].value_counts().head(10).to_dict()
         distribution[col] = dist
     return distribution
+
