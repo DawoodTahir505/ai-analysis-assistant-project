@@ -1,3 +1,8 @@
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+api_key = os.getenv("GROQ_API_KEY")
 import pandas as pd
 from groq import Groq
 
