@@ -135,3 +135,4 @@ def generate_chart(df, save_path=None, chart_type="Auto"):
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         
     return fig, chart_info
+
