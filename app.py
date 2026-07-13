@@ -2,9 +2,9 @@ import streamlit as st
 import pandas as pd
 import os
 from dotenv import load_dotenv
-from analysis import get_basic_info, get_statistics, get_categorical_distribution
-from visualization import generate_chart
-from ai_agent import ask_question, explain_chart
+from data_analysis import get_basic_info, get_statistics, get_categorical_distribution
+from chart_generator import generate_chart
+from llm_agent import ask_question, explain_chart
 
 load_dotenv()
 
