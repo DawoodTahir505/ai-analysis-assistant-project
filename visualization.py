@@ -1,140 +1,137 @@
-# =============================================================================
-# visualization.py
-# Module for generating data visualizations from the dataset.
-# Uses matplotlib for creating publication-quality charts.
-# =============================================================================
-
-import os
-import numpy as np
-import matplotlib
-matplotlib.use('Agg')  # Use non-interactive backend to avoid display issues
 import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+import numpy as np
+import warnings
+warnings.filterwarnings('ignore')
 
+def is_meaningful_categorical(df, col):
+    """Checks if a categorical column is meaningful for grouping (low cardinality)."""
+    nunique = df[col].nunique()
+    return 1 < nunique <= 20 and (nunique / len(df)) < 0.5
 
-def generate_chart(df, save_dir="charts"):
-    """
-    Generate a meaningful visualization based on the dataset.
-    Creates a 2x2 grid of charts and saves them as a PNG file.
+def generate_chart(df, save_path=None, chart_type="Auto"):
+    """Generates a highly meaningful visualization based on the dataset and user choice."""
+    sns.set_theme(style="whitegrid", palette="deep")
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    chart_info = ""
+    
+    # Clean up column choices
+    exclude_keywords = ['id', 'name', 'email', 'phone', 'address', 'url', 'password', 'guid', 'uuid']
+    valid_cols = [c for c in df.columns if not any(kw in str(c).lower() for kw in exclude_keywords)]
+    if not valid_cols: valid_cols = df.columns.tolist()
+    
+    df_clean = df[valid_cols].copy()
+    
+    # Determine column types
+    date_cols = df_clean.select_dtypes(include=['datetime64']).columns.tolist()
+    if not date_cols:
+        for col in df_clean.select_dtypes(include=['object']):
+            if 'date' in str(col).lower() or 'time' in str(col).lower():
+                try:
+                    df_clean[col] = pd.to_datetime(df_clean[col])
+                    date_cols.append(col)
+                except: pass
 
-    Parameters:
-        df (pd.DataFrame): The dataset to visualize.
-        save_dir (str): Directory to save the generated chart image.
+    numerical_cols = df_clean.select_dtypes(include=['number']).columns.tolist()
+    categorical_cols = [c for c in df_clean.select_dtypes(include=['object', 'category']).columns.tolist() if is_meaningful_categorical(df_clean, c)]
+    all_cats = df_clean.select_dtypes(include=['object', 'category']).columns.tolist()
+    
+    # Default to Auto if the type is "Auto"
+    if "Auto" in chart_type:
+        if date_cols and numerical_cols: chart_type = "Line"
+        elif categorical_cols and numerical_cols and df_clean[categorical_cols[0]].nunique() <= 6: chart_type = "Pie"
+        elif categorical_cols and numerical_cols: chart_type = "Bar"
+        elif len(numerical_cols) >= 2: chart_type = "Scatter"
+        elif numerical_cols: chart_type = "Histogram"
+        else: chart_type = "Bar" # Fallback
 
-    Returns:
-        str: The file path of the saved chart image.
-    """
-    if df is None:
-        print("[!] No dataset to visualize!")
-        return None
+    # Execute selected chart logic
+    if "Line" in chart_type:
+        if date_cols and numerical_cols:
+            date_col, num_col = date_cols[0], numerical_cols[0]
+            agg_df = df_clean.groupby(df_clean[date_col].dt.date)[num_col].sum().reset_index()
+            sns.lineplot(data=agg_df, x=date_col, y=num_col, marker="o", ax=ax, color="#E74C3C", linewidth=2.5)
+            ax.set_title(f"Line Chart: Trend of Total {num_col} over Time", fontsize=16, fontweight='bold', pad=15)
+            ax.set_xlabel(date_col.capitalize(), fontsize=12, fontweight='bold')
+            ax.set_ylabel(f"Total {num_col}", fontsize=12, fontweight='bold')
+            plt.xticks(rotation=45)
+            chart_info = f"Line chart showing the total '{num_col}' over '{date_col}'."
+        elif numerical_cols:
+            num_col = numerical_cols[0]
+            sns.lineplot(data=df_clean, x=df_clean.index, y=num_col, ax=ax, color="#E74C3C")
+            ax.set_title(f"Line Chart: {num_col} across rows", fontsize=16, fontweight='bold', pad=15)
+            chart_info = f"Line chart showing '{num_col}' across all rows."
+        else:
+            plt.close(fig)
+            return None, "❌ Line Chart requires at least one numerical column."
 
-    print("\n" + "=" * 50)
-    print("  GENERATING CHART")
-    print("=" * 50)
+    elif "Pie" in chart_type:
+        cats = categorical_cols if categorical_cols else all_cats
+        if cats and numerical_cols:
+            cat_col, num_col = cats[0], numerical_cols[0]
+            agg_df = df_clean.groupby(cat_col)[num_col].sum()
+            if len(agg_df) > 7:
+                agg_df = agg_df.sort_values(ascending=False)
+                top = agg_df.head(6)
+                other = pd.Series([agg_df.iloc[6:].sum()], index=['Other'])
+                agg_df = pd.concat([top, other])
+            colors = sns.color_palette("pastel")[0:len(agg_df)]
+            ax.pie(agg_df.values, labels=agg_df.index, autopct='%1.1f%%', startangle=140, colors=colors, wedgeprops={'edgecolor': 'white', 'linewidth': 1.5})
+            ax.set_title(f"Pie Chart: Proportion of Total {num_col} by {cat_col}", fontsize=16, fontweight='bold', pad=15)
+            chart_info = f"Pie chart showing the percentage breakdown of '{num_col}' across '{cat_col}' categories."
+        else:
+            plt.close(fig)
+            return None, "❌ Pie Chart requires at least one categorical and one numerical column."
 
-    # Ensure the output directory exists
-    os.makedirs(save_dir, exist_ok=True)
+    elif "Bar" in chart_type:
+        cats = categorical_cols if categorical_cols else all_cats
+        if cats and numerical_cols:
+            cat_col, num_col = cats[0], numerical_cols[0]
+            agg_df = df_clean.groupby(cat_col)[num_col].sum().sort_values(ascending=False).head(10)
+            sns.barplot(x=agg_df.values, y=agg_df.index, ax=ax, palette="coolwarm", hue=agg_df.index, legend=False)
+            ax.set_title(f"Bar Chart: Total {num_col} by {cat_col}", fontsize=16, fontweight='bold', pad=15)
+            ax.set_xlabel(f"Total {num_col}", fontsize=12, fontweight='bold')
+            ax.set_ylabel(cat_col, fontsize=12, fontweight='bold')
+            chart_info = f"Bar chart showing the total '{num_col}' broken down by '{cat_col}'."
+        elif cats:
+            cat_col = cats[0]
+            val_counts = df_clean[cat_col].value_counts().head(10)
+            sns.barplot(x=val_counts.values, y=val_counts.index, ax=ax, palette="mako", hue=val_counts.index, legend=False)
+            ax.set_title(f"Bar Chart: Frequency of {cat_col}", fontsize=16, fontweight='bold', pad=15)
+            ax.set_xlabel("Frequency Count", fontsize=12, fontweight='bold')
+            chart_info = f"Bar chart showing the frequency count of items in '{cat_col}'."
+        else:
+            plt.close(fig)
+            return None, "❌ Bar Chart requires at least one categorical column."
 
-    # Get column lists by data type for intelligent chart selection
-    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-    categorical_cols = df.select_dtypes(include=['object', 'string']).columns.tolist()
+    elif "Scatter" in chart_type:
+        if len(numerical_cols) >= 2:
+            num_x, num_y = numerical_cols[0], numerical_cols[1]
+            sns.scatterplot(data=df_clean, x=num_x, y=num_y, ax=ax, color="#3498DB", s=100, alpha=0.7, edgecolor="k")
+            ax.set_title(f"Scatter Plot: {num_x} vs {num_y}", fontsize=16, fontweight='bold', pad=15)
+            ax.set_xlabel(num_x, fontsize=12, fontweight='bold')
+            ax.set_ylabel(num_y, fontsize=12, fontweight='bold')
+            chart_info = f"Scatter plot showing the relationship between '{num_x}' and '{num_y}'."
+        else:
+            plt.close(fig)
+            return None, "❌ Scatter Plot requires at least TWO numerical columns in the dataset."
 
-    # Set a clean visual style for all charts
-    plt.style.use('seaborn-v0_8-whitegrid')
+    elif "Histogram" in chart_type:
+        if numerical_cols:
+            num_col = numerical_cols[0]
+            sns.histplot(df_clean[num_col], kde=True, ax=ax, color='#2ECC71', line_kws={'linewidth': 2})
+            ax.set_title(f"Histogram: Distribution of {num_col}", fontsize=16, fontweight='bold', pad=15)
+            ax.set_xlabel(num_col, fontsize=12, fontweight='bold')
+            ax.set_ylabel("Frequency", fontsize=12, fontweight='bold')
+            chart_info = f"Histogram showing how '{num_col}' is distributed across the dataset."
+        else:
+            plt.close(fig)
+            return None, "❌ Histogram requires at least one numerical column."
 
-    # Create a 2x2 subplot figure
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    fig.suptitle('Student Performance Analysis Dashboard',
-                 fontsize=18, fontweight='bold', y=1.02)
-
-    # --- Chart 1: Histogram of Performance Index ---
-    # Shows the distribution of student performance scores
-    if 'Performance Index' in numeric_cols:
-        axes[0, 0].hist(
-            df['Performance Index'], bins=20,
-            color='#3498db', edgecolor='white', alpha=0.85
-        )
-        axes[0, 0].set_title('Performance Index Distribution',
-                             fontweight='bold', fontsize=12)
-        axes[0, 0].set_xlabel('Performance Index', fontsize=10)
-        axes[0, 0].set_ylabel('Number of Students', fontsize=10)
-        axes[0, 0].grid(axis='y', alpha=0.3)
-        # Add a vertical line for the mean
-        mean_perf = df['Performance Index'].mean()
-        axes[0, 0].axvline(mean_perf, color='red', linestyle='--',
-                           linewidth=1.5, label=f'Mean: {mean_perf:.1f}')
-        axes[0, 0].legend(fontsize=9)
-
-    # --- Chart 2: Scatter Plot - Hours Studied vs Performance ---
-    # Visualizes the relationship between study time and performance
-    if 'Hours Studied' in numeric_cols and 'Performance Index' in numeric_cols:
-        axes[0, 1].scatter(
-            df['Hours Studied'], df['Performance Index'],
-            alpha=0.4, color='#e74c3c', s=25,
-            edgecolors='white', linewidth=0.3
-        )
-        axes[0, 1].set_title('Hours Studied vs Performance',
-                             fontweight='bold', fontsize=12)
-        axes[0, 1].set_xlabel('Hours Studied', fontsize=10)
-        axes[0, 1].set_ylabel('Performance Index', fontsize=10)
-        axes[0, 1].grid(alpha=0.3)
-        # Add trend line using numpy polyfit (drop NaNs to avoid errors)
-        valid_data = df[['Hours Studied', 'Performance Index']].dropna()
-        if len(valid_data) > 1:
-            z = np.polyfit(valid_data['Hours Studied'], valid_data['Performance Index'], 1)
-            p = np.poly1d(z)
-            x_line = np.linspace(valid_data['Hours Studied'].min(),
-                                 valid_data['Hours Studied'].max(), 100)
-            axes[0, 1].plot(x_line, p(x_line), '--', color='darkred',
-                            linewidth=1.5, label='Trend Line')
-        axes[0, 1].legend(fontsize=9)
-
-    # --- Chart 3: Pie Chart - Extracurricular Activities ---
-    # Shows the proportion of students with/without extracurricular activities
-    if 'Extracurricular Activities' in categorical_cols:
-        extracurricular_counts = df['Extracurricular Activities'].value_counts()
-        wedges, texts, autotexts = axes[1, 0].pie(
-            extracurricular_counts.values,
-            labels=extracurricular_counts.index,
-            autopct='%1.1f%%',
-            startangle=90,
-            textprops={'fontsize': 10}
-        )
-        # Make percentage text bold for readability
-        for autotext in autotexts:
-            autotext.set_fontweight('bold')
-        axes[1, 0].set_title('Extracurricular Activities',
-                             fontweight='bold', fontsize=12)
-
-    # --- Chart 4: Bar Chart - Average Performance by Sleep Hours ---
-    # Compares average performance across different sleep durations
-    if 'Sleep Hours' in numeric_cols and 'Performance Index' in numeric_cols:
-        sleep_performance = (df.groupby('Sleep Hours')['Performance Index']
-                             .mean().sort_index())
-        bars = axes[1, 1].bar(
-            sleep_performance.index.astype(str),
-            sleep_performance.values,
-            color='#f39c12', edgecolor='white', alpha=0.85
-        )
-        axes[1, 1].set_title('Avg Performance by Sleep Hours',
-                             fontweight='bold', fontsize=12)
-        axes[1, 1].set_xlabel('Sleep Hours', fontsize=10)
-        axes[1, 1].set_ylabel('Average Performance Index', fontsize=10)
-        axes[1, 1].grid(axis='y', alpha=0.3)
-        # Add value labels on top of each bar
-        for bar in bars:
-            height = bar.get_height()
-            axes[1, 1].text(
-                bar.get_x() + bar.get_width() / 2., height + 0.5,
-                f'{height:.1f}', ha='center', va='bottom', fontsize=8
-            )
-
-    # Adjust layout to prevent overlapping
     plt.tight_layout()
-
-    # Save the chart to the specified directory
-    chart_path = os.path.join(save_dir, 'analysis_chart.png')
-    plt.savefig(chart_path, dpi=300, bbox_inches='tight', facecolor='white')
-    plt.close(fig)  # Close figure to free memory
-
-    print(f"\n  [+] Chart saved: {chart_path}")
-    return chart_path
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        
+    return fig, chart_info
