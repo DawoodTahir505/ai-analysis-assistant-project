@@ -21,10 +21,29 @@ hide_st_style = """
             """
 st.markdown(hide_st_style, unsafe_allow_html=True)
 
-# Load API key purely from environment
-api_key = os.environ.get("GROQ_API_KEY", "")
+# Load API key from environment (.env file) OR from user input in sidebar
+env_api_key = os.environ.get("GROQ_API_KEY", "")
 
-# Sidebar default state
+# Sidebar — API Key input + Status Panel
+st.sidebar.title("🔑 API Configuration")
+if env_api_key:
+    st.sidebar.success("✅ GROQ API Key loaded from environment.")
+    api_key = env_api_key
+else:
+    st.sidebar.warning("No `.env` file found. Enter your Groq API key below to enable AI features.")
+    user_api_key = st.sidebar.text_input(
+        "Groq API Key",
+        type="password",
+        placeholder="gsk_...",
+        help="Get a free API key at https://console.groq.com"
+    )
+    api_key = user_api_key.strip()
+    if api_key:
+        st.sidebar.success("✅ API Key set! AI features are enabled.")
+    else:
+        st.sidebar.info("AI Q&A and chart insights will be disabled without an API key.")
+
+st.sidebar.markdown("---")
 st.sidebar.title("Status Panel")
 st.sidebar.info("Awaiting dataset upload...")
 
@@ -161,7 +180,7 @@ if uploaded_file is not None:
                     explanation = explain_chart(df, chart_info, api_key)
                 st.info(f"🧠 **AI Insight:** {explanation}")
             else:
-                st.warning("Please configure your GROQ_API_KEY in the .env file for AI insights.")
+                st.warning("⚠️ No API key found. Please enter your Groq API key in the sidebar to enable AI insights.")
         else:
             st.warning(chart_info)
 
@@ -175,7 +194,7 @@ if uploaded_file is not None:
         
         if st.button("Get AI Answer", type="primary"):
             if not api_key:
-                st.error("Please configure your GROQ_API_KEY in the .env file first.")
+                st.error("⚠️ No API key found. Please enter your Groq API key in the sidebar to use this feature.")
             elif not custom_q:
                 st.warning("Please enter a question.")
             else:
