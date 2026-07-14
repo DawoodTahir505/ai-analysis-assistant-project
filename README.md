@@ -1,131 +1,241 @@
-# AI Data Analysis Assistant
+# 📊 AI-Powered Data Analysis Assistant
 
-A Python-powered AI Data Analysis Assistant that reads a CSV dataset, performs statistical analysis, answers natural language questions, generates visualizations, and provides AI-driven explanations using Google Gemini API.
+An AI-powered web application built with **Streamlit** that allows users to upload datasets, perform automatic exploratory data analysis (EDA), generate meaningful visualizations, and ask natural language questions about the data using the **Groq API (Llama 3.3 70B Versatile)**.
 
-## Features
+---
 
-- **Load Dataset**: Reads CSV files and displays dataset structure (rows, columns, types, missing values)
-- **Analyze Data**: Calculates comprehensive statistics (mean, max, min, median, std dev, frequency distribution)
-- **Answer Questions**: Answers natural language questions about the dataset using Python logic
-- **Generate Charts**: Creates 4 meaningful visualizations (histogram, scatter, pie, bar chart)
-- **AI Explanation**: Uses Google Gemini API to generate a natural language summary of findings
-- **Web Interface**: Streamlit-based UI with CSV upload, interactive Q&A, and chart download
+## 📌 Project Overview
 
-## Two Ways to Run
+This application simplifies data analysis by combining traditional data exploration with Large Language Models (LLMs). Users can upload datasets in multiple formats, automatically convert them into CSV format, visualize the data, and receive AI-generated explanations and answers.
 
-### Option 1: Web Interface (Streamlit)
-```bash
-streamlit run app.py
+The project is designed to make data analysis easier for beginners while demonstrating practical integration of AI into data science workflows.
+
+---
+
+## ✨ Features
+
+### 📂 Dataset Upload
+- Upload datasets in:
+  - CSV (.csv)
+  - Excel (.xlsx, .xls)
+  - JSON (.json)
+
+- Automatically loads the dataset.
+- Converts uploaded files into CSV format.
+- Allows downloading the converted CSV.
+
+---
+
+### 📊 Dataset Overview
+
+Displays:
+
+- Total number of rows
+- Total number of columns
+- Duplicate rows
+- Missing values
+- Columns containing missing values
+- Data preview
+- Data types
+- Data dictionary
+
+---
+
+### 📈 Statistical Analysis
+
+Automatically computes statistics for numerical columns including:
+
+- Sum
+- Mean
+- Maximum
+- Minimum
+- Count
+
+For categorical columns it displays:
+
+- Frequency distribution
+- Top categories
+
+---
+
+### 📉 Automatic Data Visualization
+
+Supports the following charts:
+
+- Auto Detect
+- Bar Chart
+- Pie Chart
+- Line Chart
+- Histogram
+- Scatter Plot
+
+The application automatically selects suitable columns for visualization.
+
+Users can also download generated charts as PNG images.
+
+---
+
+### 🤖 AI Chart Explanation
+
+Using the Groq API, the application generates a simple explanation of the created visualization, highlighting important insights and trends.
+
+---
+
+### 💬 AI Dataset Question Answering
+
+Users can ask questions in natural language such as:
+
+- What is the average salary?
+- Which category has the highest sales?
+- How many missing values are there?
+- What trends can you observe?
+
+The AI answers based on the uploaded dataset.
+
+---
+
+## 🛠 Technologies Used
+
+- Python
+- Streamlit
+- Pandas
+- NumPy
+- Matplotlib
+- Seaborn
+- Groq API
+- Llama 3.3 70B Versatile
+- python-dotenv
+- OpenPyXL
+
+---
+
+## 📁 Project Structure
+
 ```
-Opens a browser with full web UI including CSV upload, interactive charts, and download buttons.
-
-### Option 2: Command Line
-```bash
-python main.py
-```
-Runs in terminal with step-by-step interactive flow.
-
-## Installation
-
-### 1. Create a Virtual Environment
-
-```bash
-python -m venv myenv
+project/
+│
+├── app.py                  # Main Streamlit application
+├── data_analysis.py        # Dataset analysis functions
+├── chart_generator.py      # Chart generation logic
+├── llm_agent.py            # Groq AI integration
+├── requirements.txt
+├── .env
+├── charts/
+│     └── generated_chart.png
+└── README.md
 ```
 
-**Activate it:**
+---
 
-- **Windows:**
-  ```bash
-  myenv\Scripts\activate
-  ```
-- **Mac/Linux:**
-  ```bash
-  source myenv/bin/activate
-  ```
+## ⚙ Installation
 
-### 2. Install Dependencies
+Clone the repository:
+
+```bash
+git clone https://github.com/your-username/AI-Data-Analysis-Assistant.git
+```
+
+Move into the project directory:
+
+```bash
+cd AI-Data-Analysis-Assistant
+```
+
+Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Set Up Gemini API Key (Optional)
+---
 
-Get a free API key from [Google AI Studio](https://aistudio.google.com/apikey).
+## 🔑 Configure API Key
 
-**Option A** - Set as environment variable:
+Create a `.env` file in the project directory.
+
+Example:
+
+```env
+GROQ_API_KEY=your_groq_api_key_here
+```
+
+If no `.env` file is found, the application allows entering the API key from the Streamlit sidebar.
+
+---
+
+## ▶ Running the Application
+
+Run:
+
 ```bash
-set GEMINI_API_KEY=your_api_key_here
+streamlit run app.py
 ```
 
-**Option B** - In the web app, paste it in the sidebar settings.
+The application will open automatically in your browser.
 
-**Option C** - Edit `main.py` and replace `YOUR_API_KEY_HERE` with your key.
+---
 
-> Note: The program works without an API key using a fallback explanation.
+## 📋 Workflow
 
-## Project Structure
+1. Upload a CSV, Excel, or JSON dataset.
+2. Dataset is loaded and converted to CSV.
+3. View dataset overview and statistics.
+4. Generate a visualization.
+5. Receive AI-generated chart explanation.
+6. Ask questions about the dataset.
+7. Download the generated chart and converted CSV.
+
+---
+
+## 📦 Dependencies
 
 ```
-Data_analysis/
-├── main.py                # Main program (terminal version)
-├── app.py                 # Streamlit web interface
-├── analysis.py            # Data loading, analysis, and Q&A module
-├── visualization.py       # Chart generation module
-├── dataset.csv            # Sample dataset (Student Performance)
-├── requirements.txt       # Python dependencies
-├── README.md              # Project documentation
-├── charts/                # Generated chart output
-│   └── analysis_chart.png
-└── myenv/                 # Virtual environment
+streamlit
+pandas
+numpy
+matplotlib
+seaborn
+groq
+python-dotenv
+openpyxl
 ```
 
-## User Flow
+---
 
-1. User starts the program
-2. CSV file is loaded
-3. Dataset summary is displayed
-4. Judges ask three questions
-5. Program answers each question
-6. One chart is generated
-7. AI provides a short explanation
+## 📸 Application Modules
 
-## Dataset
+- Dataset Upload
+- Dataset Overview
+- Statistical Analysis
+- Data Visualization
+- AI Chart Explanation
+- AI Question Answering
 
-The sample dataset contains **10,000 student records** with the following columns:
+---
 
-| Column | Description | Type |
-|--------|-------------|------|
-| Hours Studied | Hours spent studying | Numeric |
-| Previous Scores | Previous exam scores | Numeric |
-| Extracurricular Activities | Yes/No participation | Categorical |
-| Sleep Hours | Hours of sleep per night | Numeric |
-| Sample Question Papers Practiced | Number of practice papers | Numeric |
-| Performance Index | Final performance score (0-100) | Numeric |
+## ⚠ Notes
 
-## AI Integration
+- AI features require a valid Groq API key.
+- Without an API key, dataset analysis and visualization still work.
+- AI responses depend on the uploaded dataset and the Groq API.
 
-This project uses **Google Gemini API** (`gemini-2.0-flash` model) for generating natural language explanations. Only **one API call** is made. If the API key is not configured, a rule-based fallback ensures the program always runs successfully.
+---
 
-## Bonus Features
+## 🎯 Future Improvements
 
-- Better UI (Streamlit web interface with gradient styling)
-- Error handling (try/except throughout)
-- Multiple chart options (4 chart types)
-- CSV upload button (drag-and-drop in web UI)
-- Dark mode (built-in Streamlit theme toggle)
-- Export chart as PNG (download button in web UI)
+- Multiple chart generation
+- Correlation heatmaps
+- Data cleaning suggestions
+- Export AI analysis as PDF
+- More advanced statistical reports
+- Support for larger datasets
 
-## Requirements
+---
 
-- Python 3.7+
-- pandas
-- numpy
-- matplotlib
-- google-genai
-- streamlit
+## 👨‍💻 Author
 
-## Author
+**Dawood Tahiir**
 
-Built as part of the AI Data Analysis Challenge - Track A (Explorer).
+AI Data Analysis Assistant
+
+Developed using Python, Streamlit, and Groq LLM.
